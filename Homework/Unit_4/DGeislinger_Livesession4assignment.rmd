@@ -1,0 +1,109 @@
+---
+title: "Unit 4 Homework"
+author: "Dana Geislinger"
+date: "January 24, 2018"
+output:
+  html_document:
+    keep_md: true
+---
+## 1: *FiveThirtyEight* Data Gathering
+#### A. Install and load *fivethirtyeight* package
+```{r 1a, echo=TRUE}
+# Install package
+# Previously run: install.packages('fivethirtyeight')
+# Load package for use in current session
+library(fivethirtyeight)
+```
+
+#### B. Assign 18th data set to variable *df*
+```{r 1b, echo=TRUE}
+# Find 18th data set
+data(package="fivethirtyeight")$results[18,]
+
+# Assign 18th data set name to variable 'df'
+df <- fivethirtyeight::college_recent_grads
+```
+
+#### C. Write the URL of the story related to *df* in a comment
+```{r 1c, echo=TRUE}
+# Print more detailed list of the 'fivethirtyeight' data sets
+vignette("fivethirtyeight", package="fivethirtyeight")
+
+# URL found on vignette webpage
+# http://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/
+```
+
+#### D. Print dimensions and column names of data.frame *df*
+```{r 1d, echo=TRUE}
+# Print 'df' dimensions
+cat(paste("Rows:",
+          dim(df)[1],
+          "\nColumns:",
+          dim(df)[2],
+          sep="\t")
+    )
+# Print 'df' column names
+names(df)
+```
+
+## 2: *FiveThirtyEight* Data Analysis
+#### A. Write R commands to get *df* column names and number
+```{r 2a, echo=TRUE}
+# Function to get column names of a data.frame
+df.col.names <- function(df) {names(df)}
+df.col.names(df)
+# Function to get number of columns in a data.frame
+df.col.number <- function(df) {dim(df)[2]}
+df.col.number(df)
+```
+
+#### B. Count occurences of each *major_category* in *df*
+```{r 2b, echo=TRUE}
+# Generate vector of all unique values in 'major_category' column
+unique.categories <- unique(df$major_category)
+
+# Create an empty list to store counts for each major category
+category.counts <- list()
+
+# Loop through all major categories
+for (category in unique.categories) {
+  # Create vector filled with all occurences of 'category' in 'major_category' column of 'df'
+  category.occurences <- df$major_category[df$major_category == category]
+  # Store the length of that vector in the 'category.counts' list under the correct category name
+  category.counts[[category]] <- length(category.occurences)
+}
+
+# Convert 'category.counts' to data.frame object and store in new variable 'major_count'
+major_count <- data.frame(category.counts, row.names = "Count")
+
+```
+
+#### C. Create barplot for *major_count*
+```{r 2c, echo=TRUE}
+# Make text appear perpendicular to axis in barplot
+par(las=2)
+
+# Create barplot of 'major_count'
+#   as.matrix(major_count): convert data.frame object to matrix
+#     Allows barplot to use data for 'height'
+#   main: title of barplot
+#   ylim: vector containing minimum/maximum y-axis values
+barplot(as.matrix(major_count),
+        main="Number of Undergraduate Majors in each Major Category",
+        ylim=c(0, 30)
+        )
+```
+
+#### D. Write *df* to csv file without row labels
+```{r 2d, echo=TRUE}
+# Save 'df' data.frame to csv file named 'five_thirty_eight.csv' in current working directory
+#   file: name of file to save data to
+#   row.names: whether ot not to tell R to save csv file with row labels
+write.csv(df,
+          file="five_thirty_eight.csv",
+          row.names=FALSE
+          )
+```
+
+## 3. Create MSDS Homework GitHub Repository
+#### D. Link to GitHub Repository: https://github.com/danageis/SMU-MSDS-Homework.git

@@ -11,3 +11,6 @@ Sub-directories of *Homework* separate files by unit:
 * The **fivethirtyeight** library was used in R to complete homework for this unit.
     * Data presented in *five_thirty_eight.csv* and used in calculations is from the *college_recent_grads* dataset.
     * Information on this dataset and the study it was compiled for can be found at https://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/
+
+#### Unit 5
+* All information pertaining to this unit are including in the Unit 5 Codebook.

@@ -1,0 +1,79 @@
+---
+title: "Unit 10 Homework"
+author: "Dana Geislinger"
+date: "March 11, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Objective
+In order to plan for the construction of new VA hospitals, it is necessary to first understand the way mainland US hospitals VA are distributed, particularly on a state-by-state basis. In order to accomplish this we will be analyzing data on mental healthcare facilities from 2015 provided by the United States government.
+
+### **1.** Mental Health Clinics
+The National Mental Health Services Survey from 2015 provides data on every know healthcare facility that provides mental health treatment and is available at https://datafiles.samhsa.gov/study-dataset/national-mental-health-services-survey-2015-n-mhss-2015-ds0001-nid17098. The data from this survey will be imported into R and used in the analysis.
+```{r 1a}
+# Download R data zip archive to a temporary file
+zip = tempfile()
+download.file('http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads-protected/studies/N-MHSS-2015/N-MHSS-2015-datasets/N-MHSS-2015-DS0001/N-MHSS-2015-DS0001-bundles-with-study-info/N-MHSS-2015-DS0001-bndl-data-r.zip', zip, quiet=TRUE)
+
+# Load the dataset from the zip archive and delete temporary file
+load(file=unz(zip, 'N-MHSS-2015-DS0001-data/N-MHSS-2015-DS0001-data-r.rda'))
+unlink(zip)
+```
+
+Each state is given an abbreviation in the dataset. R will be used to print a list of all abbreviations.
+```{r 1b}
+# Trim white-space from state names in original dataset
+mh2015_puf$LST = trimws(mh2015_puf$LST)
+
+# Print vector of all state abbreviations
+unique(mh2015_puf$LST)
+```
+
+A question of interest is the number of facilities per state, but only in the continental United States. R will be utilized to create a data frame with the number of facilities in each mainland state and Washington D.C.
+```{r 1c}
+# Remove non-continental state abbreviations from dataset
+#   List of US territory abbreviations taken from: http://www.stateabbreviations.us
+non_cont = c('AS', 'FM', 'GU', 'MH', 'MP', 'PW', 'PR', 'VI', 'AK', 'HI')
+mh2015_puf = subset(mh2015_puf, ! mh2015_puf$LST %in% non_cont)
+
+# Create data.frame object of counts for each state abbreviation
+#   Use 'tapply' to create a list of unique values for each state
+count_by_state = data.frame(with(mh2015_puf,
+                                 tapply(CASEID,
+                                        LST,
+                                        function(x) length(unique(x))
+                                        )
+                                 )
+                            )
+
+# Set state names as 1st variable instead of as row names
+#   Uses 'rownames_to_column' function from tibble library
+require('tibble')
+count_by_state = rownames_to_column(count_by_state)
+
+# Meaningfully name variables and print first 5 observations to verify
+names(count_by_state) = c('State', 'Facilities')
+head(count_by_state, 5)
+```
+Using R, create a bar chart for the number of facilities per state.
+```{r 1d, fig.height=8}
+# Use ggplot2 for plotting
+require(ggplot2)
+
+# Create ggplot object to plot as a horizontal bar plot
+bars = ggplot(count_by_state,
+              aes(x=State,
+                  y=Facilities
+                  )
+              ) + geom_col() + coord_flip()
+
+# Create meaningful axis and plot titles
+bars + labs(x='State Abbreviation',
+            y='Number of Facilities',
+            title='Number of Mental Health Clinic per Continental States in 2015'
+            ) + theme(plot.title=element_text(hjust=0.5))
+```

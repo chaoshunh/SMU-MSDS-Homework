@@ -1,0 +1,131 @@
+---
+title: "Unit 9 Homework"
+author: "Dana Geislinger"
+date: "March 11, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **1.** Harry Potter Cast
+IMDb provides a list of all credited cast members in the film **Harry Potter and the Deathly Hallows: Part 2**: http://www.imdb.com/title/tt1201607/fullcredits?ref_=tt_ql_1. This list will be parsed and cleaned using R to present the dataset in a table of actor first/last names and corresponding characer names.
+
+**1a/b:** The table will first be scraped from the webpage and saved in an R *data.frame* object.
+```{r 1ab}
+# The library 'rvest' will be utilized to parse data from the webpage
+require('rvest')
+
+# Extract cast_list table from html parsed from webpage
+#   Parse table saved as data.frame 'hp.df'
+#   'css_selector' found in Google Chrome's 'Inspect' pane on webpage
+hp.url = 'http://www.imdb.com/title/tt1201607/fullcredits?ref_=tt_ql_1'
+hp.css_selector = '#fullcredits_content > table.cast_list'
+hp.html = read_html(hp.url)
+hp.raw_table = html_nodes(hp.html, hp.css_selector)
+hp.df = data.frame(html_table(hp.raw_table))
+
+# Verify structure of data.frame object
+str(hp.df)
+```
+
+**1c:** The raw data parsed from the website is not tidy. The imported data frame *hp.df* will be cleaned in R.
+```{r 1c}
+# Remove unnecessary columns and rows and define meaningful column names
+#   Remove 2 extraneous columns (blank and only containing '...')
+#   Remove rows with blank actor names or named 'Rest of cast listed alphebetically:'
+hp.df = subset(hp.df, X2 != '' & X2 != 'Rest of cast listed alphabetically:', select=c(X2, X4))
+names(hp.df) = c('Actor_Name', 'Character_Name')
+
+# Remove space and newline characters between Character names that span multiple table rows
+hp.df$Character_Name = gsub('\\n', '', hp.df$Character_Name)
+hp.df$Character_Name = sub('[[:space:]]{2,}', ' ', hp.df$Character_Name)
+
+# Make sure Warwick Davis is credited correctly
+subset(hp.df, Actor_Name == "Warwick Davis")
+```
+
+**1d/e:** The table on IMDb contains full actor and character names. First/middle and last actor names will be split into separate columns.
+```{r 1de}
+# The 'extract' function from tidyr will be used to split split the 'Actor_Name' column
+require('tidyr')
+# Use regular expressions to split actor names and redefine columns in 'hp.df'
+hp.df = extract(data=hp.df,
+                col=Actor_Name,
+                into=c("First_Name", "Last_Name"),
+                regex='(^.+) (.+?$)'
+                )
+
+# Print Bob Yves Van Hellenberg Hubar's row to make sure middle names were split correctly
+subset(hp.df, First_Name == 'Bob Yves Van Hellenberg')
+
+# Print the first 10 rows of the final dataset
+head(hp.df, 10)
+```
+
+### **2.** SportsBall
+Current season statistics for the San Antonio Spurs is available from ESPN: http://www.espn.com/nba/team/stats/_/name/sa/san-antonio-spurs. This data will be parsed to acquire data on current season shooting statistics. Data will be downloaded, cleaned, and presented in R.
+
+**2a/b:** The table will first be scraped from the webpage and saved in an R *data.frame* object.
+```{r 2ab}
+# Extract Shooting Statistics table from html parsed from webpage
+#   Parse table saved as data.frame 'spurs.df'
+#   'css_selector' found in Google Chrome's 'Inspect' pane on webpage
+spurs.url = 'http://www.espn.com/nba/team/stats/_/name/sa/san-antonio-spurs'
+spurs.css_selector = '#my-players-table > div.mod-container.mod-table > div:nth-child(3) > table'
+spurs.html = read_html(spurs.url)
+spurs.raw_table = html_nodes(spurs.html, spurs.css_selector)
+spurs.df = data.frame(html_table(spurs.raw_table))
+
+# Verify structure of raw data set
+str(spurs.df)
+```
+
+**2c:** Data parsed from ESPN is very messy. Data will be cleaned in R by removing extraneous rows/columns, assigning meaningful column names, creating distinct player name/position columns, and converting improperly formatted data.
+```{r 2c}
+# Correctly assign column titles
+#   Correct column titles were parsed from the webpage, but were erroneously stored in row 2 instead of as column titles
+names(spurs.df) = spurs.df[2, ]
+
+# Remove first 2 rows (incorrectly placed titles) and last row (Totals, not necessary for this analysis)
+spurs.df = spurs.df[3:19, ]
+
+# Split 'PLAYER' column into 'Name' and 'Position' columns
+spurs.df = extract(data=spurs.df,
+                   col=PLAYER,
+                   into=c('Name', 'Position'),
+                   regex='(^.+), (.+$)'
+                   )
+
+# Print data types for each variable
+sapply(spurs.df, class)
+
+# Convert statistical variables to numeric
+spurs.df[, 3:16] = sapply(spurs.df[, 3:16], as.numeric)
+
+# Print data types for dataset variables to confirm changes
+sapply(spurs.df, class)
+
+# Print structure of dataset to verify changes
+str(spurs.df)
+```
+
+**2d:** The potential relationship between player position and field goal percentage per game is of interest. To help illustrate this relationship, a bar graph will be printed using R that prints player field goal percentage color coded by their position.
+```{r 2d}
+# The ggplot2 library will be used to plot data
+require('ggplot2')
+
+# Create ggplot2 horizontal bar chart object of FG% per player color-coded by position
+spurs.plot = ggplot(data=spurs.df,
+                    aes(x=Name,
+                        y=`FG%`,
+                        fill=Position)
+                    ) + geom_col() + coord_flip()
+
+# Plot barplot with descriptive x and y labels and graph title
+spurs.plot + labs(x='Player Name',
+                  y='Field Goals Percentage per Game',
+                  title='San Antonio Spurs Field Goal Percentage for the 2017-2018 Season'
+                  )
+```

@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Objective
+### Objective
 In order to plan for the construction of new VA hospitals, it is necessary to first understand the way mainland US hospitals VA are distributed, particularly on a state-by-state basis. In order to accomplish this we will be analyzing data on mental healthcare facilities from 2015 provided by the United States government.
 
 ### **1.** Mental Health Clinics
@@ -24,9 +24,10 @@ load(file=unz(zip, 'N-MHSS-2015-DS0001-data/N-MHSS-2015-DS0001-data-r.rda'))
 unlink(zip)
 ```
 
-Each state is given an abbreviation in the dataset. R will be used to print a list of all abbreviations.
+Each state is given an abbreviation in the data set. R will be used to print a list of all abbreviations.
 ```{r 1b}
 # Trim white-space from state names in original dataset
+#   Input dataset is not tidy! Each state abbreviation ends with trailing spaces
 mh2015_puf$LST = trimws(mh2015_puf$LST)
 
 # Print vector of all state abbreviations
@@ -60,7 +61,7 @@ names(count_by_state) = c('State', 'Facilities')
 head(count_by_state, 5)
 ```
 Using R, create a bar chart for the number of facilities per state.
-```{r 1d, fig.height=8}
+```{r 1d, fig.height=8, fig.width=8}
 # Use ggplot2 for plotting
 require(ggplot2)
 
@@ -74,6 +75,54 @@ bars = ggplot(count_by_state,
 # Create meaningful axis and plot titles
 bars + labs(x='State Abbreviation',
             y='Number of Facilities',
-            title='Number of Mental Health Clinic per Continental States in 2015'
+            title='Number of Mental Health Facilities in Every\nContinental US Territory in 2015'
             ) + theme(plot.title=element_text(hjust=0.5))
 ```
+
+### **2:** Cleaning and Expanding the Dataset
+
+The mental hospital data set will be merged with a data set containing data on state size in square miles. The data will be merged by the abbreviations of each state.
+```{r 2b}
+# Import statesize data
+statesize = read.csv('statesize.csv', header=TRUE)
+
+# Merge size data with hospital dataset by state abbreviation
+df = merge(count_by_state, statesize, by.x='State', by.y='Abbrev')
+```
+This merge is not possible with the original data because each state abbreviation in column LST has spaces at the end (trailing white space). However, this aspect of the data was cleaned after the data was first imported, so we are able to merge the data successfully.
+
+The data from the previous chart could be misleading, because it does not take into consideration the size of each state and larger states will likely require more hospitals. To rectify this, the state size data will be used to calculate the number of hospitals per thousand square miles in each state.
+```{r 2c}
+# Add a new variable to the merged dataset with the number of facilities per 1,000 square miles
+df$per_1k_sq_miles = df$Facilities / (df$SqMiles / 1000)
+```
+
+The number of facilities per square mile in each state will be plotted in R. Furthermore, the plot will be color-coded by the geographic region for each state.
+```{r 2d, fig.height=8, fig.width=8}
+# Define new ggplot2 color palette to be color-blind friendly
+#   Taken from: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
+cb_friendly_colors = c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+# Create ggplot object to plot as a horizontal bar plot
+#   Use color-blind friendly color palette to fill bars
+#   Sort states in descending order of facilities per area
+bars = ggplot(df,
+              aes(x=reorder(State,
+                            per_1k_sq_miles
+                            ),
+                  y=per_1k_sq_miles,
+                  fill=Region
+                  )
+              ) + geom_col() + coord_flip() + scale_fill_manual(values=cb_friendly_colors)
+
+# Create meaningful axis and plot titles
+bars + labs(x='State Abbreviation',
+            y='Number of Facilities per 1,000 Miles',
+            title='Number of Mental Health Facilities\nper Square 1,000 Miles in Every\nContinental US Territory in 2015'
+            ) + theme(plot.title=element_text(hjust=0.5))
+```
+
+The most obvious pattern evident from this plot is that northeastern states have significantly more VA mental health facilities per square mile than any other region; the 4 states with the highest count per area are all in the northeast region, and all states in this region fall within the top 1/3 of states ranked in terms of facilities by area. States in the western region seem to have the lowest number of facilities per square mile, with the exception of California. These patterns make intuitive sense, because in general states in the western region cover larger areas with lower populations, in contrast to northeastern states which are small and have high population densities. Furthermore, consider California and Maine, the highest and lowest ranked states in the West and Northeast respectively: California has a much higher population than most western states and Maine has a much lower population than most states in the northeastern region, further reinforcing the idea that the number of facilities might have more to do with population than area.
+
+### Conclusion
+Based on this analysis of the data, it might at first glimpse appear that western states with few facilities per square mile are in desperate need of new VA hospitals. However, this may not necessarily be the case when population is considered. I would caution that further analysis involving state population is necessary to make decisions on where to build new VA mental clinics. Further research should consider the number of VA facilities per capita or even the number of VA facilities per capita normalized to population density, to give a more complete idea of the needs for VA hospitals in each state.

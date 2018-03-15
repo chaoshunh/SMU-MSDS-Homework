@@ -10,21 +10,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ### Objective
-In order to plan for the construction of new VA hospitals, it is necessary to first understand the way mainland US hospitals VA are distributed, particularly on a state-by-state basis. In order to accomplish this we will be analyzing data on mental healthcare facilities from 2015 provided by the United States government.
+In order to plan for the construction of new VA hospitals, it is necessary to first understand the way mainland US VA hospitals are distributed, particularly on a state-by-state basis. In order to accomplish this, data on mental healthcare facilities from 2015 provided by the United States government will be analyzed.
 
 ### **1.** Mental Health Clinics
-The National Mental Health Services Survey from 2015 provides data on every know healthcare facility that provides mental health treatment and is available at https://datafiles.samhsa.gov/study-dataset/national-mental-health-services-survey-2015-n-mhss-2015-ds0001-nid17098. The data from this survey will be imported into R and used in the analysis.
+The National Mental Health Services Survey from 2015 is a data set containing every known healthcare facility that provides mental health treatment. The data is available at https://datafiles.samhsa.gov/study-dataset/national-mental-health-services-survey-2015-n-mhss-2015-ds0001-nid17098. Data from this survey will be imported into R and used in the analysis.
 ```{r 1a}
 # Download R data zip archive to a temporary file
 zip = tempfile()
 download.file('http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads-protected/studies/N-MHSS-2015/N-MHSS-2015-datasets/N-MHSS-2015-DS0001/N-MHSS-2015-DS0001-bundles-with-study-info/N-MHSS-2015-DS0001-bndl-data-r.zip', zip, quiet=TRUE)
 
-# Load the dataset from the zip archive and delete temporary file
+# Load the dataset from the zip archive and delete the temporary file
 load(file=unz(zip, 'N-MHSS-2015-DS0001-data/N-MHSS-2015-DS0001-data-r.rda'))
 unlink(zip)
 ```
 
-Each state is given an abbreviation in the data set. R will be used to print a list of all abbreviations.
+Each state is identified by its federal abbreviation in the data set. R will be used to print a list of all the state abbreviations.
 ```{r 1b}
 # Trim white-space from state names in original dataset
 #   Input dataset is not tidy! Each state abbreviation ends with trailing spaces
@@ -34,7 +34,7 @@ mh2015_puf$LST = trimws(mh2015_puf$LST)
 unique(mh2015_puf$LST)
 ```
 
-A question of interest is the number of facilities per state, but only in the continental United States. R will be utilized to create a data frame with the number of facilities in each mainland state and Washington D.C.
+A statistic of interest is the number of facilities per state, but only in the continental United States. R will be utilized to create a data frame with the number of facilities in each mainland state and Washington D.C.
 ```{r 1c}
 # Remove non-continental state abbreviations from dataset
 #   List of US territory abbreviations taken from: http://www.stateabbreviations.us
@@ -56,11 +56,11 @@ count_by_state = data.frame(with(mh2015_puf,
 require('tibble')
 count_by_state = rownames_to_column(count_by_state)
 
-# Meaningfully name variables and print first 5 observations to verify
+# Meaningfully name variables and print first 5 observations to verify structure
 names(count_by_state) = c('State', 'Facilities')
 head(count_by_state, 5)
 ```
-Using R, create a bar chart for the number of facilities per state.
+Using R, create a bar chart to visually analyze the number of facilities in each state.
 ```{r 1d, fig.height=8, fig.width=8}
 # Use ggplot2 for plotting
 require(ggplot2)
@@ -81,7 +81,7 @@ bars + labs(x='State Abbreviation',
 
 ### **2:** Cleaning and Expanding the Dataset
 
-The mental hospital data set will be merged with a data set containing data on state size in square miles. The data will be merged by the abbreviations of each state.
+The analysis so far only concerns the raw number of facilities in each state, but does not incorporate any other factors that might explain why some states have more facilities. One such factor is state area; it is reasonable to assume that larger states would require more mental health facilities to serve residents in all areas. To provide this data, the mental health facility data will be merged with a data set containing data on state size in square miles. The data will be merged by each state's abbreviation.
 ```{r 2b}
 # Import statesize data
 statesize = read.csv('statesize.csv', header=TRUE)
@@ -89,15 +89,15 @@ statesize = read.csv('statesize.csv', header=TRUE)
 # Merge size data with hospital dataset by state abbreviation
 df = merge(count_by_state, statesize, by.x='State', by.y='Abbrev')
 ```
-This merge is not possible with the original data because each state abbreviation in column LST has spaces at the end (trailing white space). However, this aspect of the data was cleaned after the data was first imported, so we are able to merge the data successfully.
+This merge is not possible with the original data because each state abbreviation in column LST has spaces at the end (trailing white space). However, this aspect of the data was cleaned after the data was first imported, so we are able to merge the data without issue.
 
-The data from the previous chart could be misleading, because it does not take into consideration the size of each state and larger states will likely require more hospitals. To rectify this, the state size data will be used to calculate the number of hospitals per thousand square miles in each state.
+The data from the previous chart could be misleading, because it does not take into consideration the size of each state and larger states will likely require more facilities. To rectify this, the state size data will be used to calculate the number of hospitals per thousand square miles in each state.
 ```{r 2c}
 # Add a new variable to the merged dataset with the number of facilities per 1,000 square miles
 df$per_1k_sq_miles = df$Facilities / (df$SqMiles / 1000)
 ```
 
-The number of facilities per square mile in each state will be plotted in R. Furthermore, the plot will be color-coded by the geographic region for each state.
+The number of facilities per square mile in each state will be plotted in R. Furthermore, the plot will be color-coded by the geographic region of the United States that each state belongs to.
 ```{r 2d, fig.height=8, fig.width=8}
 # Define new ggplot2 color palette to be color-blind friendly
 #   Taken from: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
@@ -122,7 +122,7 @@ bars + labs(x='State Abbreviation',
             ) + theme(plot.title=element_text(hjust=0.5))
 ```
 
-The most obvious pattern evident from this plot is that northeastern states have significantly more VA mental health facilities per square mile than any other region; the 4 states with the highest count per area are all in the northeast region, and all states in this region fall within the top 1/3 of states ranked in terms of facilities by area. States in the western region seem to have the lowest number of facilities per square mile, with the exception of California. These patterns make intuitive sense, because in general states in the western region cover larger areas with lower populations, in contrast to northeastern states which are small and have high population densities. Furthermore, consider California and Maine, the highest and lowest ranked states in the West and Northeast respectively: California has a much higher population than most western states and Maine has a much lower population than most states in the northeastern region, further reinforcing the idea that the number of facilities might have more to do with population than area.
+The most obvious pattern evident from this plot is that northeastern states have significantly more mental health facilities per square mile than any other region; the 4 states with the highest count per area are all in the northeast region, and all states in this region fall within the top 1/3 of states ranked in terms of facilities by area. States in the western region seem to have the lowest number of facilities per square mile, with the exception of California. These patterns make intuitive sense, because in general states in the western region cover larger areas with lower populations, in contrast to northeastern states which tend to be smaller but have high population densities. Furthermore, consider California and Maine, the highest and lowest ranked states in the West and Northeast respectively: California has a much higher population than most western states while Maine has a much lower population than most states in the northeastern region. This further reinforces the idea that the number of facilities might be more related to state population rather than geographic size, since California and Maine both showcase opposite trends in terms of facilities per area compared to their regional neighbors.
 
 ### Conclusion
-Based on this analysis of the data, it might at first glimpse appear that western states with few facilities per square mile are in desperate need of new VA hospitals. However, this may not necessarily be the case when population is considered. I would caution that further analysis involving state population is necessary to make decisions on where to build new VA mental clinics. Further research should consider the number of VA facilities per capita or even the number of VA facilities per capita normalized to population density, to give a more complete idea of the needs for VA hospitals in each state.
+Based on this analysis of the data, it might at first glance appear that western states with few facilities per square mile are in desperate need of new VA hospitals. However, this may not necessarily be the case when population is considered. I would caution that further analysis involving state population is necessary before making decisions on where to build new VA mental clinics. Further research should consider the number of mental health facilities per capita or even the number of facilities per capita normalized to population density, to give a more complete picture of the need for additional VA hospitals in each state.

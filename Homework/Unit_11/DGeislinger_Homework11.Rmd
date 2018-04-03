@@ -1,0 +1,121 @@
+---
+title: "Unit 11 Homework"
+author: "Dana Geislinger"
+date: "April 2, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height=6, fig.width=8)
+```
+
+### **1:** Brief Financial Data
+We will be analyzing annual European Stock Data from 1990-1198. Particularly, we are interested in charting the prices for the DAX index and decomposing the data as a multiplicative time series.
+
+```{r 1}
+# Plot data for DAX in blue and draw a red to indicate 1997
+plot(EuStockMarkets[, 'DAX'],
+     main='Daily Closing Stock Prices for Major EU Indices 1991-1998',
+     xlab='Year',
+     ylab='DAX Index Daily Closing Price',
+     col='blue'
+     )
+abline(v=1997, col='red')
+
+# Decompose DAX timeseries and plot trend, seasonality and random
+dax.decomp = decompose(EuStockMarkets[, 'DAX'], type='mult')
+plot(dax.decomp,
+     col='blue'
+     )
+abline(v=1997, col='red')
+```
+
+### **2:** Temperature Data
+We are interested in predicting a future trend for the maximum annual temperature of Moorabbin Airport in Melbourne based on historical data spanning 1971-2016. Multiple prediction models will be compared to find the ideal model suited for this problem.
+```{r 2}
+# Load necessary libraries for data and tools
+suppressMessages(require("fpp2"))
+suppressMessages(require("dygraphs"))
+suppressMessages(require("xts"))
+suppressMessages(require("forecast"))
+
+# Plot the temperature time series
+autoplot(maxtemp,
+         xlab="Year",
+         ylab="Temperature (Celsius)"
+         )
+
+# Subset the timeseries from 1990-2016
+ts<-window(maxtemp, start=1990)
+
+# Use SES
+fit<-ses(ts, h=5)
+
+# Compare Forecast Fit
+plot(fit,
+     ylab="Temperature (Celsius)",
+     xlab= "Year",
+     main="Comparing Forecast Fit"
+     )
+lines(fitted(fit), col="blue")
+lines(fit$mean, col="blue", type="o")
+
+# Find AICc
+fit$model
+
+# Fit damped Holt Fit and plot
+holtfit<- holt(ts, initial='optimal', h=5, damped=TRUE)
+
+plot(holtfit,
+     ylab="Temperature (Celsius)",
+     xlab= "Year",
+     main="Comparing Forecast Fit"
+     )
+lines(fitted(holtfit), col="blue", type="o")
+lines(holtfit$mean, col="red")
+
+# Print AICc
+holtfit$model
+```
+
+The SES AICc value is lower than the damped Holt's AICc value, so the SES model provides a better fit as a predictor for the temperature data.
+
+### **3:** The Wands Choose the Wizard
+We would like to interpret wand sales data for two wand salesmen from 1970-2017. To do this, we will import, clean, and merge the two sales datasets in R and create an interactive DyGraph of the combined data.
+
+```{r 3}
+# Import data as 2 dataframes
+olliv.df = read.csv('Unit11TimeSeries_Ollivander.csv', header=FALSE)
+gregor.df = read.csv('Unit11TimeSeries_Gregorovitch.csv', header=FALSE)
+
+# Create meaningful variable names
+names(olliv.df) = c("Date", "Sold_Ollivander")
+names(gregor.df) = c("Date", "Sold_Gregorovitch")
+
+# Convert 'Date' column to datetime objects
+olliv.df$Date = as.Date(olliv.df$Date, format="%m/%d/%Y")
+gregor.df$Date = as.Date(gregor.df$Date, format="%m/%d/%Y")
+
+# Convert dataframes to 'xts' timeseries objects
+olliv.ts = xts(olliv.df, order.by=olliv.df$Date)
+gregor.ts = xts(gregor.df, order.by=gregor.df$Date)
+
+# Merge the 2 XTS Objects by Date
+sales.ts = merge(olliv.ts[, 2], gregor.ts[, 2])
+
+# Create dynamic DyGraph for combined sales timeseries
+#   Plots of wand sales are labelled by wand maker and color-coded
+#   Range selection and mouse highlighting are enabled
+#   Years when Voldemort was in power are highlighted
+dygraph(sales.ts,
+        main='Annual Wand Sales by Ollivander and Gregorovitch for 1970-2017',
+        xlab='Year',
+        ylab='Wands Sold'
+        ) %>%
+  dyRangeSelector(height=60) %>%
+  dyHighlight(highlightCircleSize=6) %>%
+  dySeries(name='Sold_Ollivander', label='Ollivander', color='rgb(198, 97, 25)') %>%
+  dySeries(name='Sold_Gregorovitch', label='Gregorovitch', color='rgb(63, 16, 150)') %>%
+  dyShading(from="1995-1-1", to='1999-1-1', color='rgb(232, 164, 187)')
+  
+```

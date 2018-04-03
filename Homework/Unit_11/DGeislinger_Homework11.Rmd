@@ -6,16 +6,16 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.height=6, fig.width=8)
+knitr::opts_chunk$set(echo=TRUE, fig.height=6, fig.width=8)
 ```
 
 ### **1:** Brief Financial Data
-We will be analyzing annual European Stock Data from 1990-1198. Particularly, we are interested in charting the prices for the DAX index and decomposing the data as a multiplicative time series.
+We will be analyzing annual European Stock Data from 1990-1998. Particularly, we are interested in charting the prices for the DAX index and decomposing that multiplicative time series into separate trend, seasonality, and random plots.
 
 ```{r 1}
 # Plot data for DAX in blue and draw a red to indicate 1997
 plot(EuStockMarkets[, 'DAX'],
-     main='Daily Closing Stock Prices for Major EU Indices 1991-1998',
+     main='Daily Closing Stock Prices for EU Index DAX from 1991 to 1998',
      xlab='Year',
      ylab='DAX Index Daily Closing Price',
      col='blue'
@@ -31,7 +31,7 @@ abline(v=1997, col='red')
 ```
 
 ### **2:** Temperature Data
-We are interested in predicting a future trend for the maximum annual temperature of Moorabbin Airport in Melbourne based on historical data spanning 1971-2016. Multiple prediction models will be compared to find the ideal model suited for this problem.
+We are interested in predicting a future trend for the maximum annual temperature at Moorabbin Airport in Melbourne based on historical data spanning 1971-2016. Multiple prediction models will be compared to find the ideal model suited for this problem.
 ```{r 2}
 # Load necessary libraries for data and tools
 suppressMessages(require("fpp2"))
@@ -81,7 +81,7 @@ holtfit$model
 The SES AICc value is lower than the damped Holt's AICc value, so the SES model provides a better fit as a predictor for the temperature data.
 
 ### **3:** The Wands Choose the Wizard
-We would like to interpret wand sales data for two wand salesmen from 1970-2017. To do this, we will import, clean, and merge the two sales datasets in R and create an interactive DyGraph of the combined data.
+We would like to interpret wand sales data from two wand salesmen over the period 1970-2017. To do this, we will import, clean, and merge the two sales data sets in R and create an interactive DyGraph of the combined data.
 
 ```{r 3}
 # Import data as 2 dataframes
